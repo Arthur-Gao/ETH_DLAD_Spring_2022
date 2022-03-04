@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def velo_to_camera(data, camera_id=2):
+def velo_to_image(data, camera_id=2):
     assert camera_id in range(0, 4), "Wrong camera id"
     points = np.copy(data['velodyne'])
     T_cam_velo = data[f'T_cam{camera_id}_velo']
@@ -60,6 +60,7 @@ def visualize_2d(image, points, sem_labels, color_map, bounding_box=None):
 
 
 def get_velo_box_corner(data):
+    # TODO: something wrong with this func, bounding boxes in image and velo coordinate systems are both wrong
     objects = data['objects']
     boxes = []
     for obj in objects:
@@ -100,15 +101,16 @@ def get_velo_box_corner(data):
     return boxes_velo
 
 
-def get_boxes_corner_2d(boxes_velo,camera_id):
+def get_boxes_corner_2d(data,boxes_velo,camera_id):
     assert camera_id in range(0, 4), "Wrong camera id"
     T_cam_velo = data[f'T_cam{camera_id}_velo']
     P_rect = data[f'P_rect_{camera_id}0']
-    boxes_velo = np.expand_dims(boxes_velo,axis=-1)
+
+    boxes_velo = np.expand_dims(boxes_velo, axis=-1)
     boxes_cam = np.einsum('ij,mnjk->mnik', T_cam_velo, boxes_velo)
-    #print('boxes in camera 2', boxes_cam[0])
+    # print('boxes in camera 2', boxes_cam[0])
     # mask out potential objects behind the camera
-    mask_f = np.all(np.squeeze(boxes_cam[:, :, 2] >= 0),axis = 1)
+    mask_f = np.all(np.squeeze(boxes_cam[:, :, 2] >= 0), axis=1)
     boxes_cam = boxes_cam[mask_f]
 
     boxes_image = np.einsum('ij,mnjk->mnik',P_rect,boxes_cam)
@@ -121,7 +123,9 @@ def get_boxes_corner_2d(boxes_velo,camera_id):
     mask_w = np.bitwise_and(boxes_image[:,:, 0] < w, boxes_image[:,:, 0] >= 0)
     mask_i = np.all(np.bitwise_and(mask_h, mask_w),axis = 1)
     boxes_image = boxes_image[mask_i]
-    return boxes_image
+
+    mask = np.bitwise_and(mask_f,mask_i)
+    return boxes_image, np.squeeze(boxes_velo[mask])
 
 
 if __name__ == '__main__':
@@ -136,15 +140,16 @@ if __name__ == '__main__':
     camera_id = 2
 
     # question 1
-    image_points, sem_labels = velo_to_camera(data, camera_id)
-    # visualize_2d(data['image_2'], image_points, sem_labels, data['color_map'])
+    points_image, sem_labels = velo_to_image(data, camera_id)
+    #visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'])
 
     # question 2
     boxes_velo = get_velo_box_corner(data)
-    boxes_image = get_boxes_corner_2d(boxes_velo,camera_id)
-    # visualize_2d(data['image_2'], image_points, sem_labels, data['color_map'],boxes_image)
+    boxes_image,filtered_boxes_velo = get_boxes_corner_2d(data,boxes_velo,camera_id)
+    #visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'],boxes_image)
 
     # question 3
     visualizer = vis.Visualizer()
     visualizer.update(data['velodyne'][:,:3],data['sem_label'],data['color_map'])
+    visualizer.update_boxes(filtered_boxes_velo[:,:,:3])
     vispy.app.run()

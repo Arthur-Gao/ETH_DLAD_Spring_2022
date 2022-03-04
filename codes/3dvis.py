@@ -37,7 +37,8 @@ class Visualizer():
         Task 2: Change this function such that each point
         is colored depending on its semantic label
         '''
-        self.sem_vis.set_data(points, size=3)
+        colors = np.array([colormap[l[0]] for l in sem_labels.tolist()])/255.
+        self.sem_vis.set_data(points,face_color = colors,size=3)
     
     def update_boxes(self, corners):
         '''
