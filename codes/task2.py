@@ -66,7 +66,7 @@ def get_velo_box_corner(data):
     for obj in objects:
         box = []
         # no need to store catagory since all objects in this exercise are cars
-        h, w, l = obj[8:11]
+        h, l, w = obj[8:11]
         x, y, z = obj[11:14]
         yaw = obj[14]
         cos_yaw = np.cos(yaw)
@@ -75,10 +75,10 @@ def get_velo_box_corner(data):
         box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
         box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
         box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
-        box.append([x - w / 2 * cos_yaw - l / 2 * sin_yaw, y+h, z - w / 2 * sin_yaw + l / 2 * cos_yaw])
-        box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y+h, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y+h, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y+h, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
+        box.append([x - w / 2 * cos_yaw - l / 2 * sin_yaw, y-h, z - w / 2 * sin_yaw + l / 2 * cos_yaw])
+        box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y-h, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
+        box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y-h, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
+        box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y-h, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
         # x_prime, z_prime = rotate_2d(rot_y, x, z)  # rotate center point
         # box.append([*rotate_2d(-rot_y, x_prime + w / 2, z_prime + l / 2), y])  # order: x,z,y
         # box.append([*rotate_2d(-rot_y, x_prime - w / 2, z_prime + l / 2), y])
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     config = edict({"x_min": -120., "x_max": 120.,
                     "y_min": -120., "y_max": 120.,
                     "x_res": 0.2, "y_res": 0.2})
-    data = load_data('../data/demo.p')
+    data = load_data('../data/data.p')
     camera_id = 2
 
     # question 1
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     # question 2
     boxes_velo = get_velo_box_corner(data)
     boxes_image,filtered_boxes_velo = get_boxes_corner_2d(data,boxes_velo,camera_id)
-    #visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'],boxes_image)
+    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'],boxes_image)
 
     # question 3
     visualizer = vis.Visualizer()
