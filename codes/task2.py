@@ -53,14 +53,7 @@ def visualize_2d(image, points, sem_labels, color_map, bounding_box=None):
     plt.show()
 
 
-# def rotate_2d(angle, x, z):
-#     rot_matrix = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
-#     p = np.matmul(rot_matrix, np.array([x,z]).T)
-#     return p[0], p[1]
-
-
 def get_velo_box_corner(data):
-    # TODO: something wrong with this func, bounding boxes in image and velo coordinate systems are both wrong
     objects = data['objects']
     boxes = []
     for obj in objects:
@@ -79,21 +72,10 @@ def get_velo_box_corner(data):
         box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y-h, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
         box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y-h, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
         box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y-h, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
-        # x_prime, z_prime = rotate_2d(rot_y, x, z)  # rotate center point
-        # box.append([*rotate_2d(-rot_y, x_prime + w / 2, z_prime + l / 2), y])  # order: x,z,y
-        # box.append([*rotate_2d(-rot_y, x_prime - w / 2, z_prime + l / 2), y])
-        # box.append([*rotate_2d(-rot_y, x_prime - w / 2, z_prime - l / 2), y])
-        # box.append([*rotate_2d(-rot_y, x_prime + w / 2, z_prime - l / 2), y])
-        # box.append([*rotate_2d(-rot_y, x_prime + w / 2, z_prime + l / 2), y + h])
-        # box.append([*rotate_2d(-rot_y, x_prime - w / 2, z_prime + l / 2), y + h])
-        # box.append([*rotate_2d(-rot_y, x_prime - w / 2, z_prime - l / 2), y + h])
-        # box.append([*rotate_2d(-rot_y, x_prime + w / 2, z_prime - l / 2), y + h])
         boxes.append(box)
     boxes = np.array(boxes)
-    #boxes[:,:,[1,2]] = boxes[:,:,[2,1]] # order: x,y,z
     boxes = np.concatenate((boxes,np.ones_like(boxes[:,:,[0]])),axis = -1)
     boxes = np.expand_dims(boxes,axis=-1)
-    #print('boxes in camera 0',boxes[0])
     T_cam_velo_0 = data['T_cam0_velo']
     T_cam_velo_0_inverse = np.linalg.inv(T_cam_velo_0)
     boxes_velo = np.einsum('ij,mnjk->mnik',T_cam_velo_0_inverse,boxes)
@@ -141,7 +123,7 @@ if __name__ == '__main__':
 
     # question 1
     points_image, sem_labels = velo_to_image(data, camera_id)
-    #visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'])
+    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'])
 
     # question 2
     boxes_velo = get_velo_box_corner(data)
