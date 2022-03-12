@@ -157,7 +157,7 @@ class MultimodalData:
         yaw_imu = angle_displace_imu[:, [2]] # only consider rotation around z axis
 
         # to convert points to be in the imu coordinates at the camera triggering moment
-        # TODO: strange problem： when using cam_ts, it not works
+        # TODO: a strange problem： when using cam_ts, not working
         cam_time = self.velo_ts[index]
         displacement_cam = self.calculate_displacement(cam_time - start_time, velocity, acceleration=[0, 0, 0])
         angle_displace_cam = self.calculate_displacement(cam_time - start_time, angle_velocity, acceleration=[0, 0, 0])
