@@ -7,7 +7,7 @@ import cv2
 
 
 def shift_angle(angles, angle_min):
-    # shift angles in the range [angle_min,angle_min + pi]
+    # shift angles in the range [angle_min,angle_min + 2*pi]
     angle_max = angle_min + 2 * np.pi
     if not isinstance(angles, np.ndarray):
         angles = np.array([angles])
