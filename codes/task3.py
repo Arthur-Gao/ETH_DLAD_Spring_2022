@@ -2,9 +2,9 @@ from load_data import load_data
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+import cv2
 
 def identify_channels(data,cfg,use_classifier = False,use_specification = False):
-    # TODO: the results look a little bit different from the reference solution
     points = np.copy(data['velodyne'])[:, :3]
     tan_elevation = points[:, 2] / np.sqrt(points[:, 0] ** 2 + points[:, 1] ** 2)
     elevation = np.arctan(tan_elevation) * 180. / np.pi
@@ -14,6 +14,7 @@ def identify_channels(data,cfg,use_classifier = False,use_specification = False)
             angle_max,angle_min = cfg['elevation_max'],cfg['elevation_min']
             # It turns out that there are quite a lot of points out of the specified angle range
         else:
+            # our solution
             angle_max,angle_min = np.max(elevation),np.min(elevation)
         interval = (angle_max - angle_min)/(cfg['channels']-1)
         channels = np.clip(np.int_(np.round((angle_max - elevation)/interval) + 1),1,cfg['channels'])
@@ -21,7 +22,7 @@ def identify_channels(data,cfg,use_classifier = False,use_specification = False)
     else:
         # use K means algorithm to classify point clouds
         # it turns out that there will be about 7-10% of the points being assigned to different channels
-        # can't tell which result is better
+        # we don't use it as final solution
         random_state = 0
         init_centers = np.linspace(start = np.max(elevation),stop= np.min(elevation),num = cfg['channels'])
         init_centers = np.expand_dims(init_centers,axis = -1)
@@ -59,14 +60,14 @@ def velo_to_image(data, channels, camera_id=2):
 
 
 def visualize_2d(image, points, channels, color_ls):
-    plt.imshow(image)
-    plt.axis('off')
-    x = points[:, 0]
-    y = points[:, 1]
     c_len = len(color_ls)
     colors = [color_ls[c%c_len] for c in channels]
-    plt.scatter(x, y, c=colors, s=0.01)
-    plt.show()
+    image = cv2.cvtColor(image.astype(np.uint8), cv2.COLOR_RGB2BGR)
+    for i in range(points.shape[0]):
+        image = cv2.circle(image, (np.int32(points[i][0]), np.int32(points[i][1])), 1, colors[i], -1)
+    cv2.imshow('res', image)
+    cv2.waitKey(0)
+    cv2.imwrite('../results/figure3.png', image)
 
 
 if __name__ == '__main__':
@@ -81,5 +82,5 @@ if __name__ == '__main__':
     camera_id = 2
     channels = identify_channels(data, config,use_classifier=False)
     points_image,channels = velo_to_image(data, channels, camera_id)
-    color_list = ['lime','red','magenta','blue']
+    color_list = [[0,255,0],[0,0,255],[255,0,255],[255,0,0]]
     visualize_2d(data['image_2'], points_image, channels,color_list)

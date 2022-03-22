@@ -32,6 +32,15 @@ def homo_rigid_matrix_4d(yaw, translation):
     trans_matrix = np.concatenate((np.concatenate((rot_matrix,translation),axis = 2),last_row),axis = 1)
     return trans_matrix
 
+def load_oxts_acceleration(oxts_f):
+    # return the acceleratio of the vehicle given the oxts file
+    with open(oxts_f) as f:
+        data = [list(map(np.double, line.strip().split(' '))) for line in f]
+        acc_f = data[0][14]
+        acc_l = data[0][15]
+        acc_u = data[0][16]
+    return np.array((acc_f, acc_l, acc_u))
+
 
 class MultimodalData:
     def __init__(self, base_path, velo_cfg):
@@ -95,8 +104,9 @@ class MultimodalData:
         assert 0 <= index < self.num_frames, 'Index out of range'
         file_path = os.path.join(self.imu_dir, 'data', self.file_list[index] + '.txt')
         speed = load_oxts_velocity(file_path)
+        acceleration = load_oxts_acceleration(file_path)
         angular_speed = np.array(load_oxts_angular_rate(file_path))
-        return speed, angular_speed
+        return speed, angular_speed, acceleration
 
     def convert_coord(self, pc, calib_mat):
         points = np.copy(pc)
@@ -150,14 +160,13 @@ class MultimodalData:
 
         angle_diff = shift_angle(azimuth - start_azim, 0) # lidar rotating angle difference with starting position
         time_ls = (end_time - start_time) * angle_diff / (2 * np.pi) # elapse time of each points since the starting moment
-        velocity, angle_velocity = self.read_imu(index)
+        velocity, angle_velocity, acceleration = self.read_imu(index)
 
-        displacement_imu = self.calculate_displacement(time_ls, velocity, acceleration=[0, 0, 0]) # displacement of car from the starting position
+        displacement_imu = self.calculate_displacement(time_ls, velocity, acceleration=acceleration) # displacement of car from the starting position
         angle_displace_imu = self.calculate_displacement(time_ls, angle_velocity, acceleration=[0, 0, 0]) # angular displacement of car from the starting position
         yaw_imu = angle_displace_imu[:, [2]] # only consider rotation around z axis
 
         # to convert points to be in the imu coordinates at the camera triggering moment
-        # TODO: a strange problem： when using cam_ts, not working
         cam_time = self.velo_ts[index]
         displacement_cam = self.calculate_displacement(cam_time - start_time, velocity, acceleration=[0, 0, 0])
         angle_displace_cam = self.calculate_displacement(cam_time - start_time, angle_velocity, acceleration=[0, 0, 0])
@@ -198,8 +207,10 @@ class MultimodalData:
             if not show_both:
                 cv2.imshow(f'before_{index}', img)
                 cv2.waitKey(0)
+                cv2.imwrite('../results/figure4_before.png',img)
                 cv2.imshow(f'corrected_{index}', img_cor)
                 cv2.waitKey(0)
+                cv2.imwrite('../results/figure4_after.png', img)
             else:
                 img_con = cv2.vconcat([img,img_cor])
                 # resize for visualization
@@ -207,6 +218,7 @@ class MultimodalData:
                 img_con = cv2.resize(img_con,(int(h),int(w*0.5)))
                 cv2.imshow(f'both_{index}', img_con)
                 cv2.waitKey(0)
+                cv2.imwrite('../results/figure4_concat.png', img_con)
 
 
 if __name__ == '__main__':
@@ -220,5 +232,5 @@ if __name__ == '__main__':
                     'elevation_res': 0.4, 'channels': 64})  # resolution of vertical angles is an approximated value
     data = MultimodalData(base_path, config)
     # data.set_num_interval(100)
-    frame_ids = [77]
+    frame_ids = [37]
     data.visualize_2d(frame_ids, True)

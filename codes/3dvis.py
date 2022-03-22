@@ -39,7 +39,7 @@ class Visualizer():
         '''
         colors = np.array([colormap[l[0]] for l in sem_labels.tolist()])/255.
         colors = colors[:,::-1]
-        self.sem_vis.set_data(points,face_color = colors,size=3)
+        self.sem_vis.set_data(points,face_color = colors,size=5)
     
     def update_boxes(self, corners):
         '''

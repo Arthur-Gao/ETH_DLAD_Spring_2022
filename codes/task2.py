@@ -15,6 +15,7 @@ def velo_to_image(data, camera_id=2):
     # filter out points that behind the camera
     mask_f = cam_points[:, 2] >= 0
     cam_points = cam_points[mask_f[:, 0]]
+    filtered_velo_points = points[mask_f[:, 0]]
 
     image_points = np.einsum('ij,mjk->mik', P_rect, cam_points)
     image_points = np.squeeze(image_points)
@@ -28,7 +29,8 @@ def velo_to_image(data, camera_id=2):
     mask_i = np.bitwise_and(mask_h, mask_w)
     image_points = dehomo_points[mask_i]
     sem_labels = sem_labels[mask_i]
-    return image_points, sem_labels
+    filtered_velo_points = filtered_velo_points[mask_i]
+    return image_points, sem_labels, filtered_velo_points.squeeze()[:,:3]
 
 
 def visualize_2d(image, points, sem_labels, color_map, bounding_box=None,save_path = None):
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     camera_id = 2
 
     # question 1
-    points_image, sem_labels = velo_to_image(data, camera_id)
+    points_image, sem_labels, filtered_velo_points = velo_to_image(data, camera_id)
     visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'],save_path = '../results/figure2_1.png')
 
     # question 2
@@ -130,8 +132,14 @@ if __name__ == '__main__':
     boxes_image, filtered_boxes_velo = get_boxes_corner_2d(data, boxes_velo, camera_id)
     visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'], boxes_image,save_path = '../results/figure2_2.png')
 
-    # question 3
+    # question 3: entire scene
     visualizer = vis.Visualizer()
     visualizer.update(data['velodyne'][:, :3], data['sem_label'], data['color_map'])
     visualizer.update_boxes(filtered_boxes_velo[:, :, :3])
+    vispy.app.run()
+
+    # question 3: partly visualize for counting boxes
+    visualizer_part = vis.Visualizer()
+    visualizer_part.update(filtered_velo_points, sem_labels, data['color_map'])
+    visualizer_part.update_boxes(filtered_boxes_velo[:, :, :3])
     vispy.app.run()

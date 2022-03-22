@@ -1,7 +1,7 @@
 from load_data import load_data
 import numpy as np
 import matplotlib.pyplot as plt
-
+import cv2
 
 def BEV_project(points, cfg, max_range=False):
     pc = np.copy(points)
@@ -37,6 +37,6 @@ if __name__ == '__main__':
     # rotate for visualization
     BEV_vis = np.transpose(BEV)
     BEV_vis[:,:] = BEV_vis[:,::-1] # up -> left, down -> right, left -> backward ,right -> forward
-    plt.imshow(BEV_vis, cmap='gray', interpolation='none')
-    plt.axis('off')
-    plt.show()
+    cv2.imshow('res',BEV_vis)
+    cv2.waitKey(0)
+    cv2.imwrite('../results/figure1.png',(BEV_vis * 255).astype(np.uint8))
