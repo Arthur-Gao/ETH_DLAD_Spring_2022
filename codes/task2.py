@@ -1,7 +1,7 @@
 from load_data import load_data
 import numpy as np
+import cv2
 import matplotlib.pyplot as plt
-
 
 def velo_to_image(data, camera_id=2):
     assert camera_id in range(0, 4), "Wrong camera id"
@@ -31,16 +31,12 @@ def velo_to_image(data, camera_id=2):
     return image_points, sem_labels
 
 
-def visualize_2d(image, points, sem_labels, color_map, bounding_box=None):
-    plt.imshow(image)
-    plt.axis('off')
-    x = points[:, 0]
-    y = points[:, 1]
+def visualize_2d(image, points, sem_labels, color_map, bounding_box=None,save_path = None):
     sem_labels = sem_labels.flatten()
-    color = np.array([color_map[i] for i in sem_labels]) / 255.
-    # convert to RGB
-    color = color[:, ::-1]
-    plt.scatter(x, y, c=color, s=0.01)
+    color = np.array([color_map[i] for i in sem_labels])
+    image = cv2.cvtColor(image.astype(np.uint8),cv2.COLOR_RGB2BGR)
+    for i in range(points.shape[0]):
+        image = cv2.circle(image, (np.int32(points[i][0]), np.int32(points[i][1])), 1, color[i].tolist(), -1)
 
     if bounding_box is not None:
         connect = np.array([[0, 1], [1, 2], [2, 3], [3, 0],
@@ -48,9 +44,13 @@ def visualize_2d(image, points, sem_labels, color_map, bounding_box=None):
                             [4, 5], [5, 6], [6, 7], [7, 4]])
         for box in bounding_box:
             for c in connect:
-                x, y = box[c, 0], box[c, 1]
-                plt.plot(x, y, c='lime', linewidth=1)
-    plt.show()
+                start = box[c[0]]
+                end = box[c[1]]
+                image = cv2.line(image,start,end,color = [0,255,0],thickness=2)
+    cv2.imshow('res', image)
+    cv2.waitKey(0)
+    if save_path:
+        cv2.imwrite(save_path,image)
 
 
 def get_velo_box_corner(data):
@@ -59,20 +59,20 @@ def get_velo_box_corner(data):
     for obj in objects:
         box = []
         # no need to store catagory since all objects in this exercise are cars
-        h, l, w = obj[8:11]  # ambiguous here
+        h, w, l = obj[8:11]  # ambiguous here
         x, y, z = obj[11:14]
         yaw = obj[14]
-        cos_yaw = np.cos(yaw)
         sin_yaw = np.sin(yaw)
-        box.append([x - w / 2 * cos_yaw - l / 2 * sin_yaw, y, z - w / 2 * sin_yaw + l / 2 * cos_yaw])
-        box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
+        cos_yaw = np.cos(yaw)
+        box.append([x - w / 2 * sin_yaw - l / 2 * cos_yaw, y, z - w / 2 * cos_yaw + l / 2 * sin_yaw])
+        box.append([x - w / 2 * sin_yaw + l / 2 * cos_yaw, y, z - w / 2 * cos_yaw - l / 2 * sin_yaw])
+        box.append([x + w / 2 * sin_yaw + l / 2 * cos_yaw, y, z + w / 2 * cos_yaw - l / 2 * sin_yaw])
+        box.append([x + w / 2 * sin_yaw - l / 2 * cos_yaw, y, z + w / 2 * cos_yaw + l / 2 * sin_yaw])
         # y: down, therefore minus h
-        box.append([x - w / 2 * cos_yaw - l / 2 * sin_yaw, y - h, z - w / 2 * sin_yaw + l / 2 * cos_yaw])
-        box.append([x - w / 2 * cos_yaw + l / 2 * sin_yaw, y - h, z - w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw + l / 2 * sin_yaw, y - h, z + w / 2 * sin_yaw - l / 2 * cos_yaw])
-        box.append([x + w / 2 * cos_yaw - l / 2 * sin_yaw, y - h, z + w / 2 * sin_yaw + l / 2 * cos_yaw])
+        box.append([x - w / 2 * sin_yaw - l / 2 * cos_yaw, y-h, z - w / 2 * cos_yaw + l / 2 * sin_yaw])
+        box.append([x - w / 2 * sin_yaw + l / 2 * cos_yaw, y-h, z - w / 2 * cos_yaw - l / 2 * sin_yaw])
+        box.append([x + w / 2 * sin_yaw + l / 2 * cos_yaw, y-h, z + w / 2 * cos_yaw - l / 2 * sin_yaw])
+        box.append([x + w / 2 * sin_yaw - l / 2 * cos_yaw, y-h, z + w / 2 * cos_yaw + l / 2 * sin_yaw])
         boxes.append(box)
     boxes = np.array(boxes)
     boxes = np.concatenate((boxes, np.ones_like(boxes[:, :, [0]])), axis=-1)
@@ -123,12 +123,12 @@ if __name__ == '__main__':
 
     # question 1
     points_image, sem_labels = velo_to_image(data, camera_id)
-    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'])
+    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'],save_path = '../results/figure2_1.png')
 
     # question 2
     boxes_velo = get_velo_box_corner(data)
     boxes_image, filtered_boxes_velo = get_boxes_corner_2d(data, boxes_velo, camera_id)
-    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'], boxes_image)
+    visualize_2d(data['image_2'], points_image, sem_labels, data['color_map'], boxes_image,save_path = '../results/figure2_2.png')
 
     # question 3
     visualizer = vis.Visualizer()

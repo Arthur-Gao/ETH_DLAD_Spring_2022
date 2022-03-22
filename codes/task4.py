@@ -220,5 +220,5 @@ if __name__ == '__main__':
                     'elevation_res': 0.4, 'channels': 64})  # resolution of vertical angles is an approximated value
     data = MultimodalData(base_path, config)
     # data.set_num_interval(100)
-    frame_ids = range(100)
+    frame_ids = [77]
     data.visualize_2d(frame_ids, True)
